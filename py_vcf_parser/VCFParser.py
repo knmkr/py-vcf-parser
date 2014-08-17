@@ -147,12 +147,15 @@ def _GT2genotype(REF, ALT, GT):
     >>> GT = '0|0'
     >>> _GT2genotype(REF, ALT, GT)
     'GG'
+    >>> GT = '0'  # 1 allele (chrX, etc.)
+    >>> _GT2genotype(REF, ALT, GT)
+    'G'
     """
 
     # / : genotype unphased
     # | : genotype phased
 
-    g1, g2 = re.split('/|\|', GT)
+    gt = re.split('/|\|', GT)
 
     # 0 : reference allele (what is in the REF field)
     # 1 : first allele listed in ALT
@@ -161,7 +164,10 @@ def _GT2genotype(REF, ALT, GT):
 
     bases = [REF] + ALT
 
-    genotype = bases[int(g1)] + bases[int(g2)]
+    if len(gt) == 2:
+        genotype = bases[int(gt[0])] + bases[int(gt[1])]
+    elif len(gt) == 1:
+        genotype = bases[int(gt[0])]
 
     return genotype
 
