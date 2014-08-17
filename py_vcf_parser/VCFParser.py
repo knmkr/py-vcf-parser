@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import csv
 import re
 
@@ -40,8 +41,11 @@ class VCFParser(object):
                                      fieldnames=self.fieldnames,
                                      delimiter=self.delimiter):
 
+            data['CHROM'] = _string(record['CHROM'])
             data['chrom'] = _chrom(record['CHROM'])
+
             data['pos'] = _integer(record['POS'])
+
             data['ID'] = _string(record['ID'])
             data['rs'] = _rsid(record['ID'])
 
@@ -89,6 +93,9 @@ def _alt(text):
     ['G', 'T', 'A']
     """
     alt = text.split(',')
+    if len(alt) != 1:
+        print >>sys.stderr, "[WARN] multiple alts:", alt
+
     return alt
 
 def _rsid(text):
@@ -98,10 +105,13 @@ def _rsid(text):
     """
 
     # TODO: simply split by `;` maybe buggy...
-    rs_raw = text.split(';')[0]  # rs100;rs123
+    rs_raw = text.split(';')  # rs100;rs123
+    rs_first = rs_raw[0]
+    if len(rs_raw) != 1:
+        print >>sys.stderr, "[WARN] multiple rsids:", rs_raw
 
     rs_regex = re.compile('rs(\d+)')
-    rs_match = rs_regex.match(rs_raw)
+    rs_match = rs_regex.match(rs_first)
 
     if rs_match:
         rsid = rs_match.group(1)
