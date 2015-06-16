@@ -46,7 +46,7 @@ $ py.test
 
 ## Notes
 
-- Tested on python2.7 only. python3.x is not supported.
+- Tested on python2.7 and pypy2 only. python3.x is not supported.
 
 
 ## License
