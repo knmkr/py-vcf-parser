@@ -6,78 +6,68 @@ csv.field_size_limit(sys.maxsize)  # FIXME
 import re
 
 
-class VCFParseError(Exception):
-    def __init__(self, error_code):
-        self.error_code = error_code
-    def __str__(self):
-        return repr(self.error_code)
-
-class VCFParser(object):
+class DictReader(object):
     def __init__(self, fin):
-        self.handle = fin
+        self.fin = fin
         self.delimiter = '\t'
+        self.headerlines = []
+        self.fieldnames = []
 
-        # Parse header-lines
-        for line in self.handle:
+        if type(fin) != file:
+            raise csv.Error, 'type(fin) is not file.'
+
+        # Header lines
+        for line in self.fin:
             line = line.rstrip()
 
             if line.startswith('##'):
-                pass
+                self.headerlines.append(line)
+                continue
             elif line.startswith('#CHROM'):
-                line = line.replace('#CHROM', 'CHROM')
-                self.fieldnames = line.split(self.delimiter)
+                self.fieldnames = line.replace('#CHROM', 'CHROM').split(self.delimiter)
                 break
             else:
-                raise VCFParseError, 'Header-lines seem invalid. `#CHROM ...` does not exists.'
+                raise csv.Error, 'Invalid header lines. `#CHROM ...` does not exists.'
 
-        # Determine sample-names
         if self.fieldnames[0:9] != ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']:
-            raise VCFParseError, 'Header-lines seem invalid. Probably delimiter is not tab.'
+            raise csv.Error, 'Invalid header lines. Probably delimiter is not tab.'
         else:
             self.sample_names = self.fieldnames[9:]
 
-    def parse_lines(self):
+    def __iter__(self):
         data = {}
-        for record in csv.DictReader(self.handle,
+        for record in csv.DictReader(self.fin,
                                      fieldnames=self.fieldnames,
                                      delimiter=self.delimiter):
 
-            data['CHROM'] = _string(record['CHROM'])
+            data['CHROM'] = str(record['CHROM'])
             data['chrom'] = _chrom(record['CHROM'])
 
-            data['pos'] = _integer(record['POS'])
+            data['pos'] = int(record['POS'])
 
-            data['ID'] = _string(record['ID'])
+            data['ID'] = str(record['ID'])
             data['rs'] = _rsid(record['ID'])
 
-            data['REF'] = _string(record['REF'])
+            data['REF'] = str(record['REF'])
             data['ALT'] = _alt(record['ALT'])
             data['genotype'] = {}
 
-            data['QUAL'] = _string(record['QUAL'])
-            data['FILTER'] = _string(record['FILTER'])
+            data['QUAL'] = str(record['QUAL'])
+            data['FILTER'] = str(record['FILTER'])
 
-            data['INFO'] = _string(record['INFO'])
+            data['INFO'] = str(record['INFO'])
             data['info'] = _info(record['INFO'])
 
-            # Parse FORMAT
+            # FORMAT
             format_keys = record['FORMAT'].split(':')
             for sample in self.sample_names:
                 data[sample] = dict(zip(format_keys, record[sample].split(':')))
-
-                # add `genotype` like 'GG'
                 data['genotype'][sample] = _GT2genotype(data['REF'],
                                                         data['ALT'],
                                                         data[sample]['GT'])
 
             yield data
 
-
-def _integer(text):
-    return int(text)
-
-def _string(text):
-    return text
 
 def _chrom(text):
     if text.startswith('chr'):
