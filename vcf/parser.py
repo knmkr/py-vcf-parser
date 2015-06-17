@@ -161,8 +161,3 @@ def _GT2genotype(REF, ALT, GT):
         genotype = bases[int(gt[0])]
 
     return genotype
-
-
-if __name__=='__main__':
-    import doctest
-    doctest.testmod()
