@@ -117,8 +117,17 @@ def _rsid(text):
 def _info(text):
     """parse INFO field.
 
-    >>> _info('NS=3;DP=14;AF=0.5;DB;H2')
-    {'H2': True, 'NS': '3', 'DB': True, 'DP': '14', 'AF': '0.5'}
+    >>> info = _info('NS=3;DP=14;AF=0.5;DB;H2')
+    >>> info['H2']
+    True
+    >>> info['NS']
+    '3'
+    >>> info['DB']
+    True
+    >>> info['DP']
+    '14'
+    >>> info['AF']
+    '0.5'
     """
 
     info = dict()
