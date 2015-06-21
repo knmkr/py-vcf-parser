@@ -58,6 +58,8 @@ class DictReader(object):
             data['INFO'] = str(record['INFO'])
             data['info'] = _info(record['INFO'])
 
+            data['samples'] = self.sample_names
+
             # FORMAT
             format_keys = record['FORMAT'].split(':')
             for sample in self.sample_names:
