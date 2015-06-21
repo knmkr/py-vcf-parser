@@ -50,7 +50,7 @@ class DictReader(object):
 
             data['REF'] = str(record['REF'])
             data['ALT'] = _alt(record['ALT'])
-            data['genotype'] = {}
+            data['genotypes'] = {}
 
             data['QUAL'] = str(record['QUAL'])
             data['FILTER'] = str(record['FILTER'])
@@ -64,9 +64,9 @@ class DictReader(object):
             format_keys = record['FORMAT'].split(':')
             for sample in self.sample_names:
                 data[sample] = dict(zip(format_keys, record[sample].split(':')))
-                data['genotype'][sample] = _GT2genotype(data['REF'],
-                                                        data['ALT'],
-                                                        data[sample]['GT'])
+                data['genotypes'][sample] = _GT2genotype(data['REF'],
+                                                         data['ALT'],
+                                                         data[sample]['GT'])
 
             yield data
 

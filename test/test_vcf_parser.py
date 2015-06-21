@@ -43,9 +43,9 @@ class SimpleTest(unittest.TestCase):
                                              'DP': '5',
                                              'HQ': '.,.'}
 
-                assert record['genotype'] == {'NA00001': 'GG',
-                                              'NA00002': 'AG',
-                                              'NA00003': 'AA'}
+                assert record['genotypes'] == {'NA00001': 'GG',
+                                               'NA00002': 'AG',
+                                               'NA00003': 'AA'}
 
                 assert record['samples'] == ['NA00001', 'NA00002', 'NA00003']
 
