@@ -9,7 +9,7 @@ from pprint import pprint
 
 
 class DictReader(object):
-    def __init__(self, fin):
+    def __init__(self, fin, filters={}):
         self.fin = fin
         self.delimiter = '\t'
         self.headerlines = []
@@ -33,8 +33,9 @@ class DictReader(object):
 
         if self.fieldnames[0:9] != ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']:
             raise csv.Error, 'Invalid header lines. Probably delimiter is not tab.'
-        else:
-            self.sample_names = self.fieldnames[9:]
+
+        self.sample_names = self.fieldnames[9:]
+        self.filters = filters
 
     def __iter__(self):
         data = {}
@@ -64,6 +65,10 @@ class DictReader(object):
                 data['genotype'][sample] = _GT2genotype(data['REF'],
                                                         data['ALT'],
                                                         data[sample]['GT'])
+
+            for key,condition in self.filters.items():
+                if key == 'genotype':
+                    data[key] = dict(filter(condition, data[key].iteritems()))
 
             counter = count_allele(data['genotype'])
             data['allele_count'] = sum(counter.values())

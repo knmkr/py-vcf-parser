@@ -52,6 +52,19 @@ class SimpleTest(unittest.TestCase):
 
                 break
 
+    def test_success_sample_names_in_filter(self):
+        with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
+            reader  = vcf.DictReader(fin, filters={'genotype': vcf.filters.sample_names_in(['NA00002', 'NA00003'])})
+
+            for record in reader:
+                assert record['genotype'] == {'NA00002': ['A', 'G'],
+                                              'NA00003': ['A', 'A']}
+
+                assert record['allele_count'] == 4
+                assert record['allele_freq'] == {'G': 0.25, 'A': 0.75}
+
+                break
+
     def test_header_without_chrom_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
             reader = vcf.DictReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.header-without-chrom.vcf'), 'r'))
