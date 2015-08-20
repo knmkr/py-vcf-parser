@@ -5,6 +5,8 @@ import csv
 csv.field_size_limit(sys.maxsize)  # FIXME
 import re
 from collections import Counter
+from pprint import pprint
+
 
 class DictReader(object):
     def __init__(self, fin):
@@ -121,8 +123,8 @@ def _rsid(text):
 def _info(text):
     """parse INFO field.
 
-    >>> _info('NS=3;DP=14;AF=0.5;DB;H2')
-    {'H2': True, 'NS': '3', 'DB': True, 'DP': '14', 'AF': '0.5'}
+    >>> pprint(_info('NS=3;DP=14;AF=0.5;DB;H2'))
+    {'AF': '0.5', 'DB': True, 'DP': '14', 'H2': True, 'NS': '3'}
     """
 
     info = dict()
