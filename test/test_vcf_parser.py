@@ -39,15 +39,29 @@ class SimpleTest(unittest.TestCase):
                                              'DP': '8',
                                              'HQ': '51,51'}
                 assert record['NA00003'] == {'GT': '1/1',
-                                            'GQ': '43',
+                                             'GQ': '43',
                                              'DP': '5',
                                              'HQ': '.,.'}
 
-                assert record['genotypes'] == {'NA00001': 'GG',
-                                               'NA00002': 'AG',
-                                               'NA00003': 'AA'}
+                assert record['genotype'] == {'NA00001': ['G', 'G'],
+                                              'NA00002': ['A', 'G'],
+                                              'NA00003': ['A', 'A']}
 
-                assert record['samples'] == ['NA00001', 'NA00002', 'NA00003']
+                assert record['allele_count'] == 6
+                assert record['allele_freq'] == {'G': 0.5, 'A': 0.5}
+
+                break
+
+    def test_success_sample_names_in_filter(self):
+        with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
+            reader  = vcf.DictReader(fin, filters={'genotype': vcf.filters.sample_names_in(['NA00002', 'NA00003'])})
+
+            for record in reader:
+                assert record['genotype'] == {'NA00002': ['A', 'G'],
+                                              'NA00003': ['A', 'A']}
+
+                assert record['allele_count'] == 4
+                assert record['allele_freq'] == {'G': 0.25, 'A': 0.75}
 
                 break
 

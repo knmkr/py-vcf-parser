@@ -4,10 +4,12 @@ import sys
 import csv
 csv.field_size_limit(sys.maxsize)  # FIXME
 import re
+from collections import Counter
+from pprint import pprint
 
 
 class DictReader(object):
-    def __init__(self, fin):
+    def __init__(self, fin, filters={}):
         self.fin = fin
         self.delimiter = '\t'
         self.headerlines = []
@@ -31,15 +33,15 @@ class DictReader(object):
 
         if self.fieldnames[0:9] != ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']:
             raise csv.Error, 'Invalid header lines. Probably delimiter is not tab.'
-        else:
-            self.sample_names = self.fieldnames[9:]
+
+        self.sample_names = self.fieldnames[9:]
+        self.filters = filters
 
     def __iter__(self):
         data = {}
         for record in csv.DictReader(self.fin,
                                      fieldnames=self.fieldnames,
                                      delimiter=self.delimiter):
-
             data['CHROM'] = str(record['CHROM'])
             data['chrom'] = _chrom(record['CHROM'])
 
@@ -50,7 +52,6 @@ class DictReader(object):
 
             data['REF'] = str(record['REF'])
             data['ALT'] = _alt(record['ALT'])
-            data['genotypes'] = {}
 
             data['QUAL'] = str(record['QUAL'])
             data['FILTER'] = str(record['FILTER'])
@@ -58,15 +59,20 @@ class DictReader(object):
             data['INFO'] = str(record['INFO'])
             data['info'] = _info(record['INFO'])
 
-            data['samples'] = self.sample_names
-
-            # FORMAT
-            format_keys = record['FORMAT'].split(':')
+            data['genotype'] = {}
             for sample in self.sample_names:
-                data[sample] = dict(zip(format_keys, record[sample].split(':')))
-                data['genotypes'][sample] = _GT2genotype(data['REF'],
-                                                         data['ALT'],
-                                                         data[sample]['GT'])
+                data[sample] = dict(zip(record['FORMAT'].split(':'), record[sample].split(':')))
+                data['genotype'][sample] = _GT2genotype(data['REF'],
+                                                        data['ALT'],
+                                                        data[sample]['GT'])
+
+            for key,condition in self.filters.items():
+                if key == 'genotype':
+                    data[key] = dict(filter(condition, data[key].iteritems()))
+
+            counter = count_allele(data['genotype'])
+            data['allele_count'] = sum(counter.values())
+            data['allele_freq'] = {k:float(v)/data['allele_count'] for k,v in counter.items()}
 
             yield data
 
@@ -82,12 +88,26 @@ def _chrom(text):
 
 def _alt(text):
     """
+    >>> _alt('.')
+    ['.']
+    >>> _alt('G')
+    ['G']
+    >>> _alt('G,T')
+    ['G', 'T']
     >>> _alt('G,T,A')
     ['G', 'T', 'A']
+    >>> _alt('G,T,A,C')
+    ['G', 'T', 'A', 'C']
+    >>> _alt('FOO')
+    Traceback (most recent call last):
+        ...
+    Error: Invalid ALT field: FOO
     """
+    regex = re.compile('[ACGTN,.]')
+    if not regex.match(text):
+        raise csv.Error, 'Invalid ALT field: {ALT}'.format(ALT=text)
+
     alt = text.split(',')
-    if len(alt) != 1:
-        print >>sys.stderr, "[WARN] multiple alts:", alt
 
     return alt
 
@@ -95,16 +115,13 @@ def _rsid(text):
     """
     >>> _rsid('rs100')
     100
+    >>> type(_rsid('rs100')) == int
+    True
     """
 
-    # TODO: simply split by `;` maybe buggy...
-    rs_raw = text.split(';')  # rs100;rs123
-    rs_first = rs_raw[0]
-    if len(rs_raw) != 1:
-        print >>sys.stderr, "[WARN] multiple rsids:", rs_raw
-
-    rs_regex = re.compile('rs(\d+)')
-    rs_match = rs_regex.match(rs_first)
+    # TODO: handle multiple rs like rs100;rs123
+    regex = re.compile('rs(\d+)')
+    rs_match = regex.match(text)
 
     if rs_match:
         rsid = rs_match.group(1)
@@ -119,17 +136,8 @@ def _rsid(text):
 def _info(text):
     """parse INFO field.
 
-    >>> info = _info('NS=3;DP=14;AF=0.5;DB;H2')
-    >>> info['H2']
-    True
-    >>> info['NS']
-    '3'
-    >>> info['DB']
-    True
-    >>> info['DP']
-    '14'
-    >>> info['AF']
-    '0.5'
+    >>> pprint(_info('NS=3;DP=14;AF=0.5;DB;H2'))
+    {'AF': '0.5', 'DB': True, 'DP': '14', 'H2': True, 'NS': '3'}
     """
 
     info = dict()
@@ -148,10 +156,15 @@ def _GT2genotype(REF, ALT, GT):
     >>> ALT = ['A']
     >>> GT = '0|0'
     >>> _GT2genotype(REF, ALT, GT)
-    'GG'
+    ['G', 'G']
     >>> GT = '0'  # 1 allele (chrX, etc.)
     >>> _GT2genotype(REF, ALT, GT)
-    'G'
+    ['G']
+    >>> REF = 'G'
+    >>> ALT = ['A','T']
+    >>> GT = '1|2'
+    >>> _GT2genotype(REF, ALT, GT)
+    ['A', 'T']
     """
 
     # / : genotype unphased
@@ -164,11 +177,33 @@ def _GT2genotype(REF, ALT, GT):
     # 2 : second allele list in ALT
     # and so on.
 
-    bases = [REF] + ALT
+    alleles = [REF] + ALT
 
     if len(gt) == 2:
-        genotype = bases[int(gt[0])] + bases[int(gt[1])]
+        genotype = [alleles[int(gt[0])], alleles[int(gt[1])]]
     elif len(gt) == 1:
-        genotype = bases[int(gt[0])]
+        genotype = [alleles[int(gt[0])]]
+    else:
+        raise csv.Error, 'Invalid GT (Genotype) field. len(gt) should be 1 or 2: {GT}'.format(GT=GT)
 
     return genotype
+
+def count_allele(genotype):
+    """
+    >>> cnt = count_allele({'N1': ['A', 'A'], 'N2': ['A', 'T'], 'N3': ['T', 'T']})
+    >>> cnt['A']
+    3
+    >>> cnt['T']
+    3
+    >>> cnt['G']
+    0
+    >>> cnt = count_allele({'N1': ['G', 'G'], 'N2': ['G', 'G'], 'N3': ['G', 'G']})
+    >>> cnt['G']
+    6
+    """
+
+    counter = Counter()
+    for sample, alleles in genotype.items():
+        for allele in alleles:
+            counter[allele] += 1
+    return counter
