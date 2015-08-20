@@ -83,8 +83,8 @@ def _chrom(text):
 
 def _alt(text):
     """
-    >>> _alt('')
-    ['']
+    >>> _alt('.')
+    ['.']
     >>> _alt('G')
     ['G']
     >>> _alt('G,T')
@@ -93,7 +93,15 @@ def _alt(text):
     ['G', 'T', 'A']
     >>> _alt('G,T,A,C')
     ['G', 'T', 'A', 'C']
+    >>> _alt('FOO')
+    Traceback (most recent call last):
+        ...
+    Error: Invalid ALT field: FOO
     """
+    regex = re.compile('[ACGTN,.]')
+    if not regex.match(text):
+        raise csv.Error, 'Invalid ALT field: {ALT}'.format(ALT=text)
+
     alt = text.split(',')
 
     return alt
