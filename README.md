@@ -13,10 +13,10 @@ $ pip install py-vcf-parser
 ## Usage example
 
 ```
->>> import vcf
+>>> from vcf.reader import VCFReader
 >>> with open('test/test.vcf41.vcf', 'r') as fin:
-...     for row in vcf.DictReader(fin):
-...         print row
+...     for record in vcf.VCFReader(fin):
+...         print record
 {'ALT': ['A'],
  'CHROM': '20',
  'FILTER': 'PASS',

@@ -15,7 +15,7 @@ class SimpleTest(unittest.TestCase):
 
     def test_success(self):
         with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
-            reader  = vcf.DictReader(fin)
+            reader  = vcf.reader.VCFReader(fin)
 
             assert reader.sample_names == ['NA00001', 'NA00002', 'NA00003']
 
@@ -54,7 +54,7 @@ class SimpleTest(unittest.TestCase):
 
     def test_success_sample_names_in_filter(self):
         with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
-            reader  = vcf.DictReader(fin, filters={'genotype': vcf.filters.sample_names_in(['NA00002', 'NA00003'])})
+            reader  = vcf.reader.VCFReader(fin, filters={'genotype': vcf.filters.sample_names_in(['NA00002', 'NA00003'])})
 
             for record in reader:
                 assert record['genotype'] == {'NA00002': ['A', 'G'],
@@ -67,26 +67,26 @@ class SimpleTest(unittest.TestCase):
 
     def test_header_without_chrom_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
-            reader = vcf.DictReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.header-without-chrom.vcf'), 'r'))
+            reader = vcf.reader.VCFReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.header-without-chrom.vcf'), 'r'))
 
         assert 'Invalid header lines. `#CHROM ...` does not exists.' in str(e)
 
 
     def test_without_header_lines_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
-            reader = vcf.DictReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.without-header-lines.vcf'), 'r'))
+            reader = vcf.reader.VCFReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.without-header-lines.vcf'), 'r'))
 
         assert 'Invalid header lines. `#CHROM ...` does not exists.' in str(e)
 
     def test_delimiter_is_not_tab_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
-            reader = vcf.DictReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.delimiter-is-not-tab.vcf'), 'r'))
+            reader = vcf.reader.VCFReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.delimiter-is-not-tab.vcf'), 'r'))
 
         assert 'Invalid header lines. Probably delimiter is not tab.' in str(e)
 
     def test_blank_file_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
-            reader = vcf.DictReader(open(os.path.join(self.basedir, 'test.vcf.invalid.blank-file.vcf'), 'r'))
+            reader = vcf.reader.VCFReader(open(os.path.join(self.basedir, 'test.vcf.invalid.blank-file.vcf'), 'r'))
 
         assert 'Invalid header lines. Probably delimiter is not tab.' in str(e)
 

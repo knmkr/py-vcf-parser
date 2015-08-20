@@ -8,7 +8,7 @@ from collections import Counter
 from pprint import pprint
 
 
-class DictReader(object):
+class VCFReader(object):
     def __init__(self, fin, filters={}):
         self.fin = fin
         self.delimiter = '\t'
