@@ -12,7 +12,7 @@ $ pip install py-vcf-parser
 
 ## Usage example
 
-```
+```python
 >>> from vcf.reader import VCFReader
 >>> with open('test/test.vcf41.vcf', 'r') as fin:
 ...     for record in VCFReader(fin):n
