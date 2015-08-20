@@ -15,9 +15,6 @@ class VCFReader(object):
         self.headerlines = []
         self.fieldnames = []
 
-        if type(fin) != file:
-            raise csv.Error, 'type(fin) is not file.'
-
         # Header lines
         for line in self.fin:
             line = line.rstrip()
