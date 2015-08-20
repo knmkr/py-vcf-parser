@@ -4,7 +4,7 @@ import sys
 import csv
 csv.field_size_limit(sys.maxsize)  # FIXME
 import re
-
+from collections import Counter
 
 class DictReader(object):
     def __init__(self, fin):
@@ -62,6 +62,10 @@ class DictReader(object):
                 data['genotype'][sample] = _GT2genotype(data['REF'],
                                                         data['ALT'],
                                                         data[sample]['GT'])
+
+            counter = count_allele(data['genotype'])
+            data['allele_count'] = sum(counter.values())
+            data['allele_freq'] = {k:float(v)/data['allele_count'] for k,v in counter.items()}
 
             yield data
 
@@ -137,15 +141,15 @@ def _GT2genotype(REF, ALT, GT):
     >>> ALT = ['A']
     >>> GT = '0|0'
     >>> _GT2genotype(REF, ALT, GT)
-    'GG'
+    ['G', 'G']
     >>> GT = '0'  # 1 allele (chrX, etc.)
     >>> _GT2genotype(REF, ALT, GT)
-    'G'
+    ['G']
     >>> REF = 'G'
     >>> ALT = ['A','T']
     >>> GT = '1|2'
     >>> _GT2genotype(REF, ALT, GT)
-    'AT'
+    ['A', 'T']
     """
 
     # / : genotype unphased
@@ -161,10 +165,30 @@ def _GT2genotype(REF, ALT, GT):
     alleles = [REF] + ALT
 
     if len(gt) == 2:
-        genotype = alleles[int(gt[0])] + alleles[int(gt[1])]
+        genotype = [alleles[int(gt[0])], alleles[int(gt[1])]]
     elif len(gt) == 1:
-        genotype = alleles[int(gt[0])]
+        genotype = [alleles[int(gt[0])]]
     else:
         raise csv.Error, 'Invalid GT (Genotype) field. len(gt) should be 1 or 2: {GT}'.format(GT=GT)
 
     return genotype
+
+def count_allele(genotype):
+    """
+    >>> cnt = count_allele({'N1': ['A', 'A'], 'N2': ['A', 'T'], 'N3': ['T', 'T']})
+    >>> cnt['A']
+    3
+    >>> cnt['T']
+    3
+    >>> cnt['G']
+    0
+    >>> cnt = count_allele({'N1': ['G', 'G'], 'N2': ['G', 'G'], 'N3': ['G', 'G']})
+    >>> cnt['G']
+    6
+    """
+
+    counter = Counter()
+    for sample, alleles in genotype.items():
+        for allele in alleles:
+            counter[allele] += 1
+    return counter

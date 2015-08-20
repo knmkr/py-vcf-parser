@@ -39,13 +39,17 @@ class SimpleTest(unittest.TestCase):
                                              'DP': '8',
                                              'HQ': '51,51'}
                 assert record['NA00003'] == {'GT': '1/1',
-                                            'GQ': '43',
+                                             'GQ': '43',
                                              'DP': '5',
                                              'HQ': '.,.'}
 
-                assert record['genotype'] == {'NA00001': 'GG',
-                                              'NA00002': 'AG',
-                                              'NA00003': 'AA'}
+                assert record['genotype'] == {'NA00001': ['G', 'G'],
+                                              'NA00002': ['A', 'G'],
+                                              'NA00003': ['A', 'A']}
+
+                assert record['allele_count'] == 6
+                assert record['allele_freq'] == {'G': 0.5, 'A': 0.5}
+
                 break
 
     def test_header_without_chrom_should_fail_parse(self):
