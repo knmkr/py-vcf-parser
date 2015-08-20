@@ -15,7 +15,7 @@ $ pip install py-vcf-parser
 ```
 >>> from vcf.reader import VCFReader
 >>> with open('test/test.vcf41.vcf', 'r') as fin:
-...     for record in vcf.VCFReader(fin):
+...     for record in VCFReader(fin):n
 ...         print record
 {'ALT': ['A'],
  'CHROM': '20',
@@ -27,8 +27,12 @@ $ pip install py-vcf-parser
  'NA00003': {'DP': '5', 'GQ': '43', 'GT': '1/1', 'HQ': '.,.'},
  'QUAL': '29',
  'REF': 'G',
+ 'allele_count': 6,
+ 'allele_freq': {'A': 0.5, 'G': 0.5},
  'chrom': '20',
- 'genotype': {'NA00001': 'GG', 'NA00002': 'AG', 'NA00003': 'AA'},
+ 'genotype': {'NA00001': ['G', 'G'],
+              'NA00002': ['A', 'G'],
+              'NA00003': ['A', 'A']},
  'info': {'AF': '0.5', 'DB': True, 'DP': '14', 'H2': True, 'NS': '3'},
  'pos': 14370,
  'rs': 6054257}
