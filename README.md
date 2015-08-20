@@ -47,11 +47,12 @@ $ pip install pytest
 $ py.test
 ```
 
+- Tested on python2.7 and pypy2 only. python3.x is not supported.
+- Tested on VCF version 4.1.
+
 
 ## Notes
 
-- Tested on python2.7 and pypy2 only. python3.x is not supported.
-- Tested on VCF version 4.1.
 - `symbolic allele` and `breakend` are not supported.
 
 
