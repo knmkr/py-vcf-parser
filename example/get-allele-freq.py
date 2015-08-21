@@ -22,12 +22,11 @@ def _main():
         filters.update({'genotype': sample_names_in(sample_ids)})
 
     reader = VCFReader(gzip.open(args.vcf, 'rb'), filters=filters)
-    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=['id', 'chrom', 'pos', 'allele', 'freq'])
-    writer.writeheader()
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=['snp_id', 'chrom', 'pos', 'allele', 'freq'])
 
     for record in reader:
         for allele,freq in record['allele_freq'].items():
-            writer.writerow({'id': record['ID'], 'chrom': record['CHROM'], 'pos': record['pos'], 'allele': allele, 'freq': freq})
+            writer.writerow({'snp_id': record['rs'], 'chrom': record['CHROM'], 'pos': record['pos'], 'allele': allele, 'freq': freq})
 
 
 if __name__ == '__main__':
