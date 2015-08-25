@@ -58,7 +58,7 @@ class VCFReader(object):
 
             data['genotype'] = {}
             for sample in self.sample_names:
-                data[sample] = dict(zip(record['FORMAT'].split(':'), record[sample].split(':')))
+                data[sample] = dict(zip(record['FORMAT'].split(':'), _sample(record[sample]).split(':')))
                 data['genotype'][sample] = _GT2genotype(data['REF'],
                                                         data['ALT'],
                                                         data[sample]['GT'])
@@ -70,6 +70,7 @@ class VCFReader(object):
             counter = count_allele(data['genotype'])
             data['allele_count'] = sum(counter.values())
             data['allele_freq'] = {k:float(v)/data['allele_count'] for k,v in counter.items()}
+            print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
 
             yield data
 
@@ -149,23 +150,33 @@ def _info(text):
         info.update({k:v})
     return info
 
+def _sample(text):
+    if text == None:
+        return ''
+    else:
+        return text
+
 def _GT2genotype(REF, ALT, GT):
     """parse GT (GenoType) in Genotype fields.
 
-    >>> REF = 'G'
-    >>> ALT = ['A']
-    >>> GT = '0|0'
-    >>> _GT2genotype(REF, ALT, GT)
+    >>> _GT2genotype('G', ['A'], '0|0')
     ['G', 'G']
-    >>> GT = '0'  # 1 allele (chrX, etc.)
-    >>> _GT2genotype(REF, ALT, GT)
+    >>> _GT2genotype('G', ['A'], '0/0')  # unphased genotype
+    ['G', 'G']
+    >>> _GT2genotype('G', ['A'], '0')    # 1 allele (chrX, etc.)
     ['G']
-    >>> REF = 'G'
-    >>> ALT = ['A','T']
-    >>> GT = '1|2'
-    >>> _GT2genotype(REF, ALT, GT)
+    >>> _GT2genotype('G', ['A'], './.')  # no calls
+    []
+    >>> _GT2genotype('G', ['A'], '')     # blank
+    []
+    >>> _GT2genotype('G', ['A','T'], '1|2')
     ['A', 'T']
+    >>> _GT2genotype('G', ['A','T','C'], '3|3')
+    ['C', 'C']
     """
+
+    if GT == '':
+        return []
 
     # / : genotype unphased
     # | : genotype phased
@@ -178,13 +189,7 @@ def _GT2genotype(REF, ALT, GT):
     # and so on.
 
     alleles = [REF] + ALT
-
-    if len(gt) == 2:
-        genotype = [alleles[int(gt[0])], alleles[int(gt[1])]]
-    elif len(gt) == 1:
-        genotype = [alleles[int(gt[0])]]
-    else:
-        raise csv.Error, 'Invalid GT (Genotype) field. len(gt) should be 1 or 2: {GT}'.format(GT=GT)
+    genotype = [alleles[int(idx)] for idx in gt if idx != '.']
 
     return genotype
 
