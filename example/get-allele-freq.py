@@ -14,6 +14,7 @@ def _main():
     parser = argparse.ArgumentParser()
     parser.add_argument('vcf')
     parser.add_argument('--sample-ids')
+    parser.add_argument('--exclude-rsids', nargs='+', type=int)
     args = parser.parse_args()
 
     filters = {}
@@ -27,6 +28,9 @@ def _main():
 
     for record in reader:
         for allele,freq in record['allele_freq'].items():
+            if args.exclude_rsids and (record['rs'] in args.exclude_rsids):
+                continue
+
             writer.writerow({'id': record['ID'], 'chrom': record['CHROM'], 'pos': record['pos'], 'allele': allele, 'freq': freq})
 
 
