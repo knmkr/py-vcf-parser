@@ -10,7 +10,7 @@ import decimal
 
 
 class VCFReader(object):
-    def __init__(self, fin, filters={}):
+    def __init__(self, fin, filters={}, num_after_decimal_point=4):
         self.fin = fin
         self.delimiter = '\t'
         self.headerlines = []
@@ -34,6 +34,7 @@ class VCFReader(object):
 
         self.sample_names = self.fieldnames[9:]
         self.filters = filters
+        self.num_after_decimal_point = num_after_decimal_point
 
     def __iter__(self):
         data = {}
@@ -70,7 +71,7 @@ class VCFReader(object):
 
             counter = count_allele(data['genotype'])
             data['allele_count'] = sum(counter.values())
-            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count']) for k,cnt in counter.items()}
+            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count'], self.num_after_decimal_point) for k,cnt in counter.items()}
 
             print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
 
@@ -215,12 +216,16 @@ def count_allele(genotype):
             counter[allele] += 1
     return counter
 
-def allele_freq(count, total):
+def allele_freq(count, total, num_after_decimal_point):
     """
-    >>> allele_freq(1,3)
+    >>> allele_freq(1,3,3)
     Decimal('0.333')
-    >>> allele_freq(2675,10000)
+    >>> allele_freq(2675,10000,3)
     Decimal('0.268')
+    >>> allele_freq(2675,10000,4)
+    Decimal('0.2675')
     """
 
-    return (decimal.Decimal(count) / decimal.Decimal(total)).quantize(decimal.Decimal('1.000'), rounding=decimal.ROUND_HALF_UP)
+    fmt = '1.' + '0' * num_after_decimal_point
+
+    return (decimal.Decimal(count) / decimal.Decimal(total)).quantize(decimal.Decimal(fmt), rounding=decimal.ROUND_HALF_UP)
