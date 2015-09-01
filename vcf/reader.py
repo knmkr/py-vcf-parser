@@ -6,6 +6,7 @@ csv.field_size_limit(sys.maxsize)  # FIXME
 import re
 from collections import Counter
 from pprint import pprint
+import decimal
 
 
 class VCFReader(object):
@@ -69,7 +70,8 @@ class VCFReader(object):
 
             counter = count_allele(data['genotype'])
             data['allele_count'] = sum(counter.values())
-            data['allele_freq'] = {k:float(v)/data['allele_count'] for k,v in counter.items()}
+            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count']) for k,cnt in counter.items()}
+
             print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
 
             yield data
@@ -212,3 +214,13 @@ def count_allele(genotype):
         for allele in alleles:
             counter[allele] += 1
     return counter
+
+def allele_freq(count, total):
+    """
+    >>> allele_freq(1,3)
+    Decimal('0.333')
+    >>> allele_freq(2675,10000)
+    Decimal('0.268')
+    """
+
+    return (decimal.Decimal(count) / decimal.Decimal(total)).quantize(decimal.Decimal('1.000'), rounding=decimal.ROUND_HALF_UP)
