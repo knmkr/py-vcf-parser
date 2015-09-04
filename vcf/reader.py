@@ -6,11 +6,11 @@ csv.field_size_limit(sys.maxsize)  # FIXME
 import re
 from collections import Counter
 from pprint import pprint
-import decimal
+from decimal import *
 
 
 class VCFReader(object):
-    def __init__(self, fin, filters={}, num_after_decimal_point=4):
+    def __init__(self, fin, filters={}, decimal_prec=4):
         self.fin = fin
         self.delimiter = '\t'
         self.headerlines = []
@@ -34,7 +34,7 @@ class VCFReader(object):
 
         self.sample_names = self.fieldnames[9:]
         self.filters = filters
-        self.num_after_decimal_point = num_after_decimal_point
+        self.decimal_prec = decimal_prec
 
     def __iter__(self):
         data = {}
@@ -71,9 +71,12 @@ class VCFReader(object):
 
             counter = count_allele(data['genotype'])
             data['allele_count'] = sum(counter.values())
-            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count'], self.num_after_decimal_point) for k,cnt in counter.items()}
 
-            print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
+            getcontext().prec = self.decimal_prec
+            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count']) for k,cnt in counter.items()}
+
+            if data['allele_count'] == 0:
+                print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
 
             yield data
 
@@ -216,16 +219,18 @@ def count_allele(genotype):
             counter[allele] += 1
     return counter
 
-def allele_freq(count, total, num_after_decimal_point):
+def allele_freq(count, total):
     """
-    >>> allele_freq(1,3,3)
+    >>> getcontext().prec = 3
+    >>> allele_freq(1,3)
     Decimal('0.333')
-    >>> allele_freq(2675,10000,3)
+    >>> allele_freq(2675,10000)
     Decimal('0.268')
-    >>> allele_freq(2675,10000,4)
+    >>> getcontext().prec = 4
+    >>> allele_freq(2675,10000)
     Decimal('0.2675')
+    >>> allele_freq(2675,100000)
+    Decimal('0.02675')
     """
 
-    fmt = '1.' + '0' * num_after_decimal_point
-
-    return (decimal.Decimal(count) / decimal.Decimal(total)).quantize(decimal.Decimal(fmt), rounding=decimal.ROUND_HALF_UP)
+    return Decimal(count) / Decimal(total)
