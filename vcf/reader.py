@@ -8,6 +8,8 @@ from collections import Counter
 from pprint import pprint
 from decimal import *
 
+class VCFFilterNotPass(Exception):
+    pass
 
 class VCFReader(object):
     def __init__(self, fin, filters={}, decimal_prec=4):
@@ -41,44 +43,51 @@ class VCFReader(object):
         for record in csv.DictReader(self.fin,
                                      fieldnames=self.fieldnames,
                                      delimiter=self.delimiter):
-            data['CHROM'] = str(record['CHROM'])
-            data['chrom'] = _chrom(record['CHROM'])
+            try:
+                data['CHROM'] = str(record['CHROM'])
+                data['chrom'] = _chrom(record['CHROM'])
 
-            data['pos'] = int(record['POS'])
+                data['pos'] = int(record['POS'])
 
-            data['ID'] = str(record['ID'])
-            data['rs'] = _rsid(record['ID'])
+                data['ID'] = str(record['ID'])
+                data['rs'] = _rsid(record['ID'])
 
-            data['REF'] = str(record['REF'])
-            data['ALT'] = _alt(record['ALT'])
+                data['REF'] = str(record['REF'])
+                data['ALT'] = _alt(record['ALT'])
 
-            data['QUAL'] = str(record['QUAL'])
-            data['FILTER'] = str(record['FILTER'])
+                data['QUAL'] = str(record['QUAL'])
+                data['FILTER'] = str(record['FILTER'])
 
-            data['INFO'] = str(record['INFO'])
-            data['info'] = _info(record['INFO'])
+                data['INFO'] = str(record['INFO'])
+                data['info'] = _info(record['INFO'])
 
-            data['genotype'] = {}
-            for sample in self.sample_names:
-                data[sample] = dict(zip(record['FORMAT'].split(':'), _sample(record[sample]).split(':')))
-                data['genotype'][sample] = _GT2genotype(data['REF'],
-                                                        data['ALT'],
-                                                        data[sample]['GT'])
+                data['genotype'] = {}
+                for sample in self.sample_names:
+                    data[sample] = dict(zip(record['FORMAT'].split(':'), _sample(record[sample]).split(':')))
+                    data['genotype'][sample] = _GT2genotype(data['REF'],
+                                                            data['ALT'],
+                                                            data[sample]['GT'])
 
-            for key,condition in self.filters.items():
-                if key == 'genotype':
-                    data[key] = dict(filter(condition, data[key].iteritems()))
+                for key,condition in self.filters.items():
+                    if key == 'genotype':
+                        data[key] = dict(filter(condition, data[key].iteritems()))
+                    elif key == 'rs':
+                        if not condition(data[key]):
+                            raise VCFFilterNotPass
 
-            counter = count_allele(data['genotype'])
-            data['allele_count'] = sum(counter.values())
+                counter = count_allele(data['genotype'])
+                data['allele_count'] = sum(counter.values())
 
-            getcontext().prec = self.decimal_prec
-            data['allele_freq'] = {k:allele_freq(cnt, data['allele_count']) for k,cnt in counter.items()}
+                getcontext().prec = self.decimal_prec
+                data['allele_freq'] = {k:allele_freq(cnt, data['allele_count']) for k,cnt in counter.items()}
 
-            if data['allele_count'] == 0:
-                print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
+                if data['allele_count'] == 0:
+                    print >>sys.stderr, '[WARN] allele_count is 0:', data['ID']
 
-            yield data
+            except VCFFilterNotPass:
+                continue
+            else:
+                yield data
 
 
 def _chrom(text):

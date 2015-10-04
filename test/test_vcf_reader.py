@@ -65,6 +65,19 @@ class SimpleTest(unittest.TestCase):
 
                 break
 
+    def test_success_rs_ids_in_filter(self):
+        with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
+            reader  = vcf.reader.VCFReader(fin, filters={'rs': vcf.filters.rsid_in([6054257])})
+
+            for record in reader:
+                assert record['rs'] == 6054257
+
+        with open(os.path.join(self.basedir, 'test.vcf41.vcf'), 'r') as fin:
+            reader  = vcf.reader.VCFReader(fin, filters={'rs': vcf.filters.rsid_in([6040355])})
+
+            for record in reader:
+                assert record['rs'] == 6040355
+
     def test_header_without_chrom_should_fail_parse(self):
         with pytest.raises(csv.Error) as e:
             reader = vcf.reader.VCFReader(open(os.path.join(self.basedir, 'test.vcf41.invalid-header.header-without-chrom.vcf'), 'r'))
